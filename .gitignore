@@ -1,0 +1,5 @@
+venv/
+.cursor
+btcusdt_5m_final_with_targets.csv
+catboost_info
+baselines/__pycache__
