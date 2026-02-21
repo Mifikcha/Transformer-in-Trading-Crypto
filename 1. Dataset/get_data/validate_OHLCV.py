@@ -25,8 +25,12 @@ def validate_and_clean(
     in_path: str,
     out_path: str,
     freq: str = "5min",
+    required_cols: list[str] | None = REQUIRED_COLS,
 ) -> None:
-
+    """
+    Validate and clean dataset. When required_cols is None, skip column check
+    and OHLC sanity check (for enriched datasets with close_perp, close_spot, etc.).
+    """
     # --- load ---
     if in_path.endswith(".parquet"):
         df = pd.read_parquet(in_path)
@@ -37,10 +41,11 @@ def validate_and_clean(
 
     print(f"Loaded: {df.shape[0]:,} rows")
 
-    # --- columns ---
-    missing = set(REQUIRED_COLS) - set(df.columns)
-    if missing:
-        raise ValueError(f"Missing columns: {missing}")
+    # --- columns (skip when required_cols is None, e.g. for enriched dataset) ---
+    if required_cols is not None:
+        missing = set(required_cols) - set(df.columns)
+        if missing:
+            raise ValueError(f"Missing columns: {missing}")
 
     # --- ts dtype ---
     df["ts"] = pd.to_datetime(df["ts"], utc=True)
@@ -66,14 +71,14 @@ def validate_and_clean(
         print("Sample:")
         print(df.loc[dt.ne(expected).to_numpy().nonzero()[0][:5] + 1, "ts"])
 
-    # --- OHLC sanity ---
-    bad_ohlc = (
-        (df["high"] < df[["open", "close", "low"]].max(axis=1)) |
-        (df["low"]  > df[["open", "close", "high"]].min(axis=1))
-    ).sum()
-
-    if bad_ohlc > 0:
-        raise ValueError(f"OHLC consistency failed on {bad_ohlc} rows")
+    # --- OHLC sanity (skip when required_cols is None, e.g. enriched dataset) ---
+    if required_cols is not None and all(c in df.columns for c in ["open", "high", "low", "close"]):
+        bad_ohlc = (
+            (df["high"] < df[["open", "close", "low"]].max(axis=1)) |
+            (df["low"]  > df[["open", "close", "high"]].min(axis=1))
+        ).sum()
+        if bad_ohlc > 0:
+            raise ValueError(f"OHLC consistency failed on {bad_ohlc} rows")
 
     # --- save ---
     if out_path.endswith(".parquet"):
