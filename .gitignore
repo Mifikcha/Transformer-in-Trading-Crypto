@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+1. Dataset/get_data/output/
+2. Target/form_target/output/
