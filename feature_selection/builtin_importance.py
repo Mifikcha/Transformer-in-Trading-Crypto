@@ -4,6 +4,7 @@ Feature importance (gain) from LightGBM over walk-forward folds.
 
 from __future__ import annotations
 
+import io
 import os
 import sys
 
@@ -45,7 +46,18 @@ def _lgbm_config():
     )
 
 
-def run(data_path: str | None = None, n_splits: int = 5) -> pd.DataFrame:
+def _out(msg: str, log_file: io.TextIOWrapper | None) -> None:
+    print(msg)
+    if log_file is not None:
+        log_file.write(msg + "\n")
+        log_file.flush()
+
+
+def run(
+    data_path: str | None = None,
+    n_splits: int = 5,
+    log_file: io.TextIOWrapper | None = None,
+) -> pd.DataFrame:
     """Train LightGBM per fold, collect feature_importances_ (gain), aggregate and return ranking."""
     path = data_path or get_default_data_path()
     df = load_dataset(path)
@@ -85,18 +97,18 @@ def run(data_path: str | None = None, n_splits: int = 5) -> pd.DataFrame:
     result = result.sort_values("mean_importance", ascending=False).reset_index(drop=True)
     result["rank"] = np.arange(1, len(result) + 1)
 
-    # Console: top-30 and sum by group
-    print("\n" + "=" * 70)
-    print("  BUILTIN IMPORTANCE (LightGBM gain)")
-    print("=" * 70)
+    # Console and log: top-30 and sum by group
+    _out("\n" + "=" * 70, log_file)
+    _out("  BUILTIN IMPORTANCE (LightGBM gain)", log_file)
+    _out("=" * 70, log_file)
     top = result.head(30)
-    print("\n  Top 30 features:")
+    _out("\n  Top 30 features:", log_file)
     for _, r in top.iterrows():
-        print(f"    {r['rank']:3d}  {r['feature']:<30}  {r['mean_importance']:>10.2f}  (+- {r['std_importance']:.2f})  [{r['group']}]")
+        _out(f"    {r['rank']:3d}  {r['feature']:<30}  {r['mean_importance']:>10.2f}  (+- {r['std_importance']:.2f})  [{r['group']}]", log_file)
     group_sum = result.groupby("group", sort=False)["mean_importance"].sum().sort_values(ascending=False)
-    print("\n  Sum of importance by group:")
+    _out("\n  Sum of importance by group:", log_file)
     for grp, s in group_sum.items():
-        print(f"    {grp:<20}  {s:>10.2f}")
-    print("=" * 70 + "\n")
+        _out(f"    {grp:<20}  {s:>10.2f}", log_file)
+    _out("=" * 70 + "\n", log_file)
 
     return result

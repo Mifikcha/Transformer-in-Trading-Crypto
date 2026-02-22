@@ -11,3 +11,4 @@ btcusdt_5m_final_with_targets.csv
 .cursor
 catboost_info
 baselines/__pycache__
+feature_selection/output/

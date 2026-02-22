@@ -4,6 +4,7 @@ Permutation importance on walk-forward validation windows (balanced_accuracy).
 
 from __future__ import annotations
 
+import io
 import os
 import sys
 
@@ -46,10 +47,18 @@ def _lgbm_config():
     )
 
 
+def _out(msg: str, log_file: io.TextIOWrapper | None) -> None:
+    print(msg)
+    if log_file is not None:
+        log_file.write(msg + "\n")
+        log_file.flush()
+
+
 def run(
     data_path: str | None = None,
     n_splits: int = 5,
     n_repeats: int = 5,
+    log_file: io.TextIOWrapper | None = None,
 ) -> pd.DataFrame:
     """Compute permutation importance per fold, aggregate mean/std, return ranking."""
     path = data_path or get_default_data_path()
@@ -100,17 +109,17 @@ def run(
     result = result.sort_values("mean_perm_importance", ascending=False).reset_index(drop=True)
     result["rank"] = np.arange(1, len(result) + 1)
 
-    print("\n" + "=" * 70)
-    print("  PERMUTATION IMPORTANCE (balanced_accuracy drop)")
-    print("=" * 70)
+    _out("\n" + "=" * 70, log_file)
+    _out("  PERMUTATION IMPORTANCE (balanced_accuracy drop)", log_file)
+    _out("=" * 70, log_file)
     top = result.head(30)
-    print("\n  Top 30 features:")
+    _out("\n  Top 30 features:", log_file)
     for _, r in top.iterrows():
-        print(f"    {r['rank']:3d}  {r['feature']:<30}  {r['mean_perm_importance']:>10.4f}  (+- {r['std_perm_importance']:.4f})  [{r['group']}]")
+        _out(f"    {r['rank']:3d}  {r['feature']:<30}  {r['mean_perm_importance']:>10.4f}  (+- {r['std_perm_importance']:.4f})  [{r['group']}]", log_file)
     group_sum = result.groupby("group", sort=False)["mean_perm_importance"].sum().sort_values(ascending=False)
-    print("\n  Sum of permutation importance by group:")
+    _out("\n  Sum of permutation importance by group:", log_file)
     for grp, s in group_sum.items():
-        print(f"    {grp:<20}  {s:>10.4f}")
-    print("=" * 70 + "\n")
+        _out(f"    {grp:<20}  {s:>10.4f}", log_file)
+    _out("=" * 70 + "\n", log_file)
 
     return result

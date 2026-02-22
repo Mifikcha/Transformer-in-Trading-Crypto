@@ -4,6 +4,7 @@ Group ablation: remove each feature family, retrain LightGBM, report metric delt
 
 from __future__ import annotations
 
+import io
 import os
 import sys
 
@@ -81,7 +82,18 @@ def _run_with_features(
     return {k: float(np.mean([f[k] for f in metrics_per_fold])) for k in keys}
 
 
-def run(data_path: str | None = None, n_splits: int = 5) -> pd.DataFrame:
+def _out(msg: str, log_file: io.TextIOWrapper | None) -> None:
+    print(msg)
+    if log_file is not None:
+        log_file.write(msg + "\n")
+        log_file.flush()
+
+
+def run(
+    data_path: str | None = None,
+    n_splits: int = 5,
+    log_file: io.TextIOWrapper | None = None,
+) -> pd.DataFrame:
     """Baseline (all features) then ablate each group; return table of deltas."""
     path = data_path or get_default_data_path()
     df = load_dataset(path)
@@ -120,15 +132,15 @@ def run(data_path: str | None = None, n_splits: int = 5) -> pd.DataFrame:
 
     result = pd.DataFrame(rows)
 
-    print("\n" + "=" * 90)
-    print("  GROUP ABLATION (LightGBM)")
-    print("=" * 90)
-    print(f"  Baseline (all features):  bal_acc={baseline_metrics['balanced_accuracy']:.4f}  macro_f1={baseline_metrics['macro_f1']:.4f}  coverage={baseline_metrics['coverage']:.4f}  pnl_proxy={baseline_metrics['pnl_proxy']:.4f}")
-    print("-" * 90)
-    print(f"  {'Group':<18}  {'bal_acc':>10}  {'delta_ba':>10}  {'macro_f1':>10}  {'delta_f1':>10}  {'coverage':>10}  {'delta_cov':>10}  {'pnl_proxy':>10}  {'delta_pnl':>10}")
-    print("-" * 90)
+    _out("\n" + "=" * 90, log_file)
+    _out("  GROUP ABLATION (LightGBM)", log_file)
+    _out("=" * 90, log_file)
+    _out(f"  Baseline (all features):  bal_acc={baseline_metrics['balanced_accuracy']:.4f}  macro_f1={baseline_metrics['macro_f1']:.4f}  coverage={baseline_metrics['coverage']:.4f}  pnl_proxy={baseline_metrics['pnl_proxy']:.4f}", log_file)
+    _out("-" * 90, log_file)
+    _out(f"  {'Group':<18}  {'bal_acc':>10}  {'delta_ba':>10}  {'macro_f1':>10}  {'delta_f1':>10}  {'coverage':>10}  {'delta_cov':>10}  {'pnl_proxy':>10}  {'delta_pnl':>10}", log_file)
+    _out("-" * 90, log_file)
     for _, r in result.iterrows():
-        print(f"  {r['group']:<18}  {r['ablated_bal_acc']:>10.4f}  {r['delta_bal_acc']:>+10.4f}  {r['ablated_macro_f1']:>10.4f}  {r['delta_macro_f1']:>+10.4f}  {r['ablated_coverage']:>10.4f}  {r['delta_coverage']:>+10.4f}  {r['ablated_pnl_proxy']:>10.4f}  {r['delta_pnl_proxy']:>+10.4f}")
-    print("=" * 90 + "\n")
+        _out(f"  {r['group']:<18}  {r['ablated_bal_acc']:>10.4f}  {r['delta_bal_acc']:>+10.4f}  {r['ablated_macro_f1']:>10.4f}  {r['delta_macro_f1']:>+10.4f}  {r['ablated_coverage']:>10.4f}  {r['delta_coverage']:>+10.4f}  {r['ablated_pnl_proxy']:>10.4f}  {r['delta_pnl_proxy']:>+10.4f}", log_file)
+    _out("=" * 90 + "\n", log_file)
 
     return result
