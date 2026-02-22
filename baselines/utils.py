@@ -207,7 +207,7 @@ def print_metrics(metrics_per_fold: list[dict], model_name: str) -> None:
 
 
 def get_default_data_path() -> str:
-    """Default path to CSV relative to project root."""
+    """Default path to CSV: 2. Target/form_target/btcusdt_5m_final_with_targets.csv."""
     import os
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, "btcusdt_5m_final_with_targets.csv")
+    return os.path.join(base, "2. Target", "form_target", "btcusdt_5m_final_with_targets.csv")
