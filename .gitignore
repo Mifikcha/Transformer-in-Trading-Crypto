@@ -7,6 +7,7 @@ __pycache__/
 2. Target/form_target/output/
 
 btcusdt_5m_final_with_targets.csv
+2. Target/form_target/btcusdt_5m_with_horizons.csv
 .cursor
 catboost_info
 baselines/__pycache__
