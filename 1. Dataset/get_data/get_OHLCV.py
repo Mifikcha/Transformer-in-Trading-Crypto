@@ -12,10 +12,12 @@ Outputs:
 Dependencies:
   pip install pybit pandas pyarrow
 
-Examples:
+Examples (CLI):
   python get_data/get_OHLCV.py --symbol BTCUSDT --category linear --interval 1 --start "2020-01-01" --end "2026-01-01" --out get_data/output/perp/btcusdt_1m_perp.parquet
-  python get_data/get_OHLCV.py --symbol BTCUSDT --category linear --interval 1 --start "2020-01-01" --end "2026-01-01" --out get_data/output/perp/btcusdt_1m_perp.csv
-  python get_data/get_OHLCV.py --symbol BTCUSDT --category linear --interval 5 --start "2020-01-01" --end "2026-01-01" --out get_data/output/perp/btcusdt_5m_perp.parquet
+
+Example (из другого скрипта):
+  from get_data.get_OHLCV import fetch_ohlcv
+  fetch_ohlcv("BTCUSDT", "linear", "1", "2020-01-01", "2026-01-01", "data/btcusdt_1m.parquet")
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ import shutil
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 import pandas as pd
 from pybit.unified_trading import HTTP
@@ -300,6 +302,84 @@ def fetch_full_range(
 
 
 # -----------------------------
+# Programmatic API (для вызова из других скриптов)
+# -----------------------------
+def fetch_ohlcv(
+    symbol: str,
+    category: Category,
+    interval: str,
+    start: Union[str, datetime],
+    end: Union[str, datetime],
+    out_path: str,
+    *,
+    api_key: Optional[str] = None,
+    api_secret: Optional[str] = None,
+    testnet: bool = False,
+    limit: int = 1000,
+    keep_temp: bool = False,
+) -> None:
+    """
+    Скачать OHLCV за указанный период и сохранить в файл.
+    Вызывай из других скриптов без CLI.
+
+    Args:
+        symbol: Тикер, например BTCUSDT.
+        category: "spot", "linear" или "inverse".
+        interval: Интервал свечей Bybit: 1,3,5,15,30,60,120,240,360,720,D,W,M ...
+        start: Начало периода (строка даты/времени или datetime, UTC если без tz).
+        end: Конец периода (строка или datetime).
+        out_path: Путь к выходному файлу (.csv или .parquet).
+        api_key: API-ключ Bybit (опционально, по умолчанию BYBIT_API_KEY из env).
+        api_secret: Секрет Bybit (опционально).
+        testnet: Использовать testnet.
+        limit: Лимит свечей за один запрос (1–1000).
+        keep_temp: Не удалять временные чанки (для отладки).
+
+    Example:
+        from get_data.get_OHLCV import fetch_ohlcv
+        fetch_ohlcv(
+            symbol="BTCUSDT",
+            category="linear",
+            interval="1",
+            start="2020-01-01",
+            end="2026-01-01",
+            out_path="data/btcusdt_1m.parquet",
+        )
+    """
+    api_key = api_key or os.getenv("BYBIT_API_KEY")
+    api_secret = api_secret or os.getenv("BYBIT_API_SECRET")
+
+    start_dt = parse_dt(start) if isinstance(start, str) else start
+    end_dt = parse_dt(end) if isinstance(end, str) else end
+    start_ms = _to_utc_ms(start_dt)
+    end_ms = _to_utc_ms(end_dt)
+
+    if end_ms <= start_ms:
+        raise ValueError("end must be greater than start")
+
+    if limit < 1 or limit > 1000:
+        raise ValueError("limit must be in [1, 1000]")
+
+    fetcher = OHLCVFetcher(
+        api_key=api_key,
+        api_secret=api_secret,
+        testnet=testnet,
+    )
+
+    fetch_full_range(
+        fetcher=fetcher,
+        symbol=symbol,
+        category=category,
+        interval=str(interval),
+        start_ms=start_ms,
+        end_ms=end_ms,
+        out_path=out_path,
+        limit=limit,
+        keep_temp=keep_temp,
+    )
+
+
+# -----------------------------
 # CLI
 # -----------------------------
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -321,34 +401,22 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = build_arg_parser().parse_args()
-
-    start_dt = parse_dt(args.start)
-    end_dt = parse_dt(args.end)
-    start_ms, end_ms = _to_utc_ms(start_dt), _to_utc_ms(end_dt)
-
-    if end_ms <= start_ms:
-        raise SystemExit("--end must be greater than --start")
-
-    if args.limit < 1 or args.limit > 1000:
-        raise SystemExit("--limit must be in [1, 1000]")
-
-    fetcher = OHLCVFetcher(
-        api_key=args.api_key,
-        api_secret=args.api_secret,
-        testnet=args.testnet,
-    )
-
-    fetch_full_range(
-        fetcher=fetcher,
-        symbol=args.symbol,
-        category=args.category,
-        interval=str(args.interval),
-        start_ms=start_ms,
-        end_ms=end_ms,
-        out_path=args.out,
-        limit=args.limit,
-        keep_temp=args.keep_temp,
-    )
+    try:
+        fetch_ohlcv(
+            symbol=args.symbol,
+            category=args.category,
+            interval=args.interval,
+            start=args.start,
+            end=args.end,
+            out_path=args.out,
+            api_key=args.api_key,
+            api_secret=args.api_secret,
+            testnet=args.testnet,
+            limit=args.limit,
+            keep_temp=args.keep_temp,
+        )
+    except ValueError as e:
+        raise SystemExit(str(e))
 
 
 if __name__ == "__main__":

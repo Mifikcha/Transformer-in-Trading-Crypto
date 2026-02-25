@@ -1,6 +1,12 @@
 pandas
 numpy
+pyarrow
 scikit-learn
 xgboost
 lightgbm
 catboost
+pybit
+matplotlib
+ccxt
+requests
+seaborn

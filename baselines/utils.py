@@ -45,6 +45,20 @@ DEFAULT_COST_PER_TRADE = 0.001
 ECE_N_BINS = 10
 
 
+def get_lightgbm_classifier_config() -> dict:
+    """Shared LightGBM classifier config for baseline and feature-selection runs."""
+    return {
+        "objective": "multiclass",
+        "num_class": 3,
+        "max_depth": 6,
+        "n_estimators": 300,
+        "learning_rate": 0.05,
+        "random_state": 42,
+        "verbose": -1,
+        "class_weight": "balanced",
+    }
+
+
 def load_dataset(path: str) -> pd.DataFrame:
     """Load CSV, filter is_valid_target==1, sort by ts."""
     df = pd.read_csv(path)
@@ -207,7 +221,7 @@ def print_metrics(metrics_per_fold: list[dict], model_name: str) -> None:
 
 
 def get_default_data_path() -> str:
-    """Default path to CSV relative to project root."""
+    """Default path to CSV: 2. Target/form_target/btcusdt_5m_final_with_targets.csv."""
     import os
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, "btcusdt_5m_final_with_targets.csv")
+    return os.path.join(base, "2. Target", "form_target", "btcusdt_5m_final_with_targets.csv")
