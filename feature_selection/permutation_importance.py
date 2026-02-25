@@ -30,21 +30,9 @@ from utils import (
     encode_trading_class,
     TRADING_CLASS_COL,
     get_default_data_path,
+    get_lightgbm_classifier_config,
 )
 from feature_groups import get_group_for_feature
-
-
-def _lgbm_config():
-    return dict(
-        objective="multiclass",
-        num_class=3,
-        max_depth=6,
-        n_estimators=300,
-        learning_rate=0.05,
-        random_state=42,
-        verbose=-1,
-        class_weight="balanced",
-    )
 
 
 def _out(msg: str, log_file: io.TextIOWrapper | None) -> None:
@@ -82,7 +70,7 @@ def run(
         X_train_s = scaler.fit_transform(X_train)
         X_test_s = scaler.transform(X_test)
 
-        model = lgb.LGBMClassifier(**_lgbm_config())
+        model = lgb.LGBMClassifier(**get_lightgbm_classifier_config())
         model.fit(X_train_s, y_train)
 
         # importance_decreases when feature is permuted (lower score = more important)

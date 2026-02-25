@@ -31,21 +31,9 @@ from utils import (
     compute_metrics,
     get_default_data_path,
     DEFAULT_COST_PER_TRADE,
+    get_lightgbm_classifier_config,
 )
 from feature_groups import FEATURE_GROUPS, get_group_for_feature
-
-
-def _lgbm_config():
-    return dict(
-        objective="multiclass",
-        num_class=3,
-        max_depth=6,
-        n_estimators=300,
-        learning_rate=0.05,
-        random_state=42,
-        verbose=-1,
-        class_weight="balanced",
-    )
 
 
 def _run_with_features(
@@ -69,7 +57,7 @@ def _run_with_features(
         X_train_s = scaler.fit_transform(X_train)
         X_test_s = scaler.transform(X_test)
 
-        model = lgb.LGBMClassifier(**_lgbm_config())
+        model = lgb.LGBMClassifier(**get_lightgbm_classifier_config())
         model.fit(X_train_s, y_train)
         y_pred = model.predict(X_test_s)
         y_proba = model.predict_proba(X_test_s)

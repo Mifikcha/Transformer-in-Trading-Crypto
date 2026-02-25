@@ -70,7 +70,7 @@ def main(
         df_builtin = builtin_importance.run(
             data_path=data_path, n_splits=n_splits, log_file=log_file
         )
-        # df_builtin.to_csv(os.path.join(out_dir, "builtin_importance.csv"), index=False)
+        df_builtin.to_csv(os.path.join(out_dir, "builtin_importance.csv"), index=False)
 
         _out("\nStep 2: Permutation importance", log_file)
         df_perm = permutation_importance.run(
@@ -79,13 +79,13 @@ def main(
             n_repeats=n_repeats,
             log_file=log_file,
         )
-        # df_perm.to_csv(os.path.join(out_dir, "permutation_importance.csv"), index=False)
+        df_perm.to_csv(os.path.join(out_dir, "permutation_importance.csv"), index=False)
 
         _out("\nStep 3: Group ablation", log_file)
         df_ablation = group_ablation.run(
             data_path=data_path, n_splits=n_splits, log_file=log_file
         )
-        # df_ablation.to_csv(os.path.join(out_dir, "group_ablation.csv"), index=False)
+        df_ablation.to_csv(os.path.join(out_dir, "group_ablation.csv"), index=False)
 
         # --- SUMMARY ---
         by_feature = df_builtin.set_index("feature")["mean_importance"].reindex(
@@ -112,10 +112,10 @@ def main(
         n_top = min(n_top, len(df_builtin_sorted))
         recommended = df_builtin_sorted.head(n_top)["feature"].tolist()
 
-        # result_rank.to_csv(os.path.join(out_dir, "summary_ranking.csv"), index=False)
-        # pd.DataFrame({"feature": recommended}).to_csv(
-        #     os.path.join(out_dir, "recommended_features.csv"), index=False
-        # )
+        result_rank.to_csv(os.path.join(out_dir, "summary_ranking.csv"), index=False)
+        pd.DataFrame({"feature": recommended}).to_csv(
+            os.path.join(out_dir, "recommended_features.csv"), index=False
+        )
 
         _out("\n" + "=" * 80, log_file)
         _out("  SUMMARY", log_file)
