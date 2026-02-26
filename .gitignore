@@ -7,6 +7,7 @@ __pycache__/
 2. Target/form_target/output/
 strategy/output/
 feature_selection/output/
+2. Target/form_target/btcusdt_5m_with_horizons.csv
 
 btcusdt_5m_final_with_targets.csv
 .cursor
